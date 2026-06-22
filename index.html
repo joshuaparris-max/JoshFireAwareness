@@ -56,7 +56,9 @@
   </header>
   <div class="tabs">
     <button class="tab active" data-t="check">Readiness checklist</button>
+    <button class="tab" data-t="plan">My household plan</button>
     <button class="tab" data-t="scenarios">Scenario practice</button>
+    <button class="tab" data-t="ratings">Danger ratings</button>
     <button class="tab" data-t="links">Official sources</button>
   </div>
   <div id="panel"></div>
@@ -155,7 +157,37 @@ function renderLinks(){
   LINKS.forEach(l=>{ const a=document.createElement('a'); a.href=l.u; if(l.u.startsWith('http')){a.target='_blank'; a.rel='noopener';} if(l.e)a.className='emergency'; a.innerHTML=`${l.n}<small>${l.s}</small>`; $('lk').appendChild(a); });
 }
 
-const TABS={check:renderChecklist,scenarios:renderScenarios,links:renderLinks};
+// ---- My household plan ----
+const PKEY='fireready_plan_v1';
+const PLAN_FIELDS=[
+  {id:'meeting', t:'Meeting point', ph:'Where the household regroups (e.g. the corner shop)'},
+  {id:'contact', t:'Out-of-area contact', ph:'Someone outside the risk area everyone can call'},
+  {id:'trigger', t:'Leave-early trigger', ph:'What makes us go (e.g. any Watch and Act nearby)'},
+  {id:'pets', t:'Who takes the pets', ph:'Name + carrier location'},
+  {id:'route', t:'Primary route out', ph:'Main road away from the bush'},
+  {id:'altroute', t:'Backup route', ph:'If the main road is blocked'},
+];
+function renderPlan(){
+  const plan=load(PKEY,{});
+  $('panel').innerHTML=`<div class="card"><h2>My household plan</h2><p class="muted">Fill this in calmly, ahead of time. Saved on this device only.</p><div id="planFields"></div>
+    <div style="display:flex;gap:8px;margin-top:14px"><button class="btn" id="savePlan">Save plan</button><button class="btn ghost" id="printPlan">Print plan</button></div></div>`;
+  const wrap=$('planFields');
+  PLAN_FIELDS.forEach(f=>{ const d=document.createElement('div'); d.style.marginTop='10px'; d.innerHTML=`<label style="display:block;font-size:.82rem;color:var(--muted);margin-bottom:4px">${f.t}</label><input type="text" id="pf_${f.id}" value="${(plan[f.id]||'').replace(/"/g,'&quot;')}" placeholder="${f.ph}" style="width:100%;background:#140d08;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:10px;font-family:inherit">`; wrap.appendChild(d); });
+  $('savePlan').onclick=()=>{ const p={}; PLAN_FIELDS.forEach(f=>p[f.id]=$('pf_'+f.id).value.trim()); localStorage.setItem(PKEY,JSON.stringify(p)); $('savePlan').textContent='Saved ✓'; setTimeout(()=>$('savePlan').textContent='Save plan',1200); };
+  $('printPlan').onclick=()=>{ const p={}; PLAN_FIELDS.forEach(f=>p[f.id]=$('pf_'+f.id).value.trim()); const w=window.open('','_blank'); w.document.write(`<title>Household Fire Plan</title><style>body{font-family:system-ui;padding:24px;max-width:600px}h1{font-size:20px}dt{font-weight:700;margin-top:10px}dd{margin:2px 0 0}small{color:#666}</style><h1>🔥 Household Fire Plan</h1><small>Practice tool — in an emergency call 000 and follow NSW RFS / BOM / ABC Emergency.</small><dl>${PLAN_FIELDS.map(f=>`<dt>${f.t}</dt><dd>${(p[f.id]||'—')}</dd>`).join('')}</dl>`); w.document.close(); w.print(); };
+}
+// ---- Fire danger ratings explainer (Australian Fire Danger Rating System) ----
+const RATINGS=[
+  {n:'Moderate', c:'#2e7d32', d:'Plan and prepare. Most fires can be controlled.'},
+  {n:'High', c:'#f9a825', d:'Be ready to act. Fires can be dangerous. Know your trigger to leave.'},
+  {n:'Extreme', c:'#ef6c00', d:'Take action now to protect life and property. Leaving early is safest.'},
+  {n:'Catastrophic', c:'#c62828', d:'For your survival, leave bushfire-risk areas. Homes are not designed to withstand these conditions.'},
+];
+function renderRatings(){
+  $('panel').innerHTML=`<div class="card"><h2>Fire danger ratings</h2><p class="muted">A plain-English guide to the Australian Fire Danger Rating System. Always confirm the current rating via official sources.</p><div id="rt"></div></div>`;
+  RATINGS.forEach(r=>{ const d=document.createElement('div'); d.style.cssText='border-left:6px solid '+r.c+';background:#140d08;border-radius:8px;padding:12px 14px;margin-top:10px'; d.innerHTML=`<div style="font-weight:700;color:${r.c}">${r.n}</div><div class="muted" style="color:var(--text)">${r.d}</div>`; $('rt').appendChild(d); });
+}
+const TABS={check:renderChecklist,plan:renderPlan,scenarios:renderScenarios,ratings:renderRatings,links:renderLinks};
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); TABS[t.dataset.t](); });
 renderChecklist();
 </script>
