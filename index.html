@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JoshFireAwareness - Bendigo/Ballarat Fire Safety</title>
+    <title>JoshFireAwareness - Australian Fire Safety</title>
     <link rel="icon" href="docs/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
@@ -771,7 +771,7 @@
 <body>
     <div style="background:#7f1d1d;color:#fff;padding:10px 16px;text-align:center;font-size:14px;line-height:1.5">
         ⚠️ <strong>Prototype / awareness demo — NOT an official warning service.</strong>
-        Built for the <strong>Bendigo–Ballarat (Victoria)</strong> area only. This is not
+        Built for the <strong>Australian</strong> area. This is not
         emergency advice and may be out of date. In an emergency call <strong>000</strong> and
         always follow <a href="https://emergency.vic.gov.au/" target="_blank" style="color:#fecaca">VicEmergency</a>,
         the <a href="https://www.rfs.nsw.gov.au/" target="_blank" style="color:#fecaca">NSW RFS</a>,
@@ -780,14 +780,14 @@
     <header>
         <h1>JoshFireAwareness</h1>
         <div class="sub">
-            Live awareness for <strong>Bendigo/Epsom</strong> and the <strong>Bendigo <-> Ballarat</strong> drive.<br>
-            <span class="small">Always follow VicEmergency + BOM as the source of truth.</span>
+            Live awareness for your <strong>Primary Location</strong> and <strong>Destination</strong>.<br>
+            <span class="small">Always follow official state sources (e.g., VicEmergency, RFS) + BOM as the source of truth.</span>
         </div>
         <div id="countdown-display" aria-live="polite">Time until safe departure (8:00am Sat): --</div>
     </header>
 
     <div class="status-banner" id="mainStatus" aria-live="polite">
-        OK Epsom/Bendigo: Currently NO Emergency Warning
+        OK: Currently NO Emergency Warning at Primary Location
     </div>
 
     <div class="offline-banner" id="offlineBanner" aria-live="polite">
@@ -825,8 +825,8 @@
                 <div class="hr"></div>
                 
                 <div class="input-group">
-                    <label for="homeAddr">Home (Epsom)</label>
-                    <input id="homeAddr" value="53 Buckland Street, Epsom VIC 3551" aria-label="Home address" />
+                    <label for="homeAddr">Primary Location</label>
+                    <input id="homeAddr" placeholder="Enter an address or suburb" value="" aria-label="Primary Location address" />
                     <div class="action-buttons">
                         <button class="btn primary" id="homeGeocode" aria-label="Geocode home address">Geocode</button>
                         <button class="btn" id="homeHere" aria-label="Use GPS for home location">Use GPS</button>
@@ -837,8 +837,8 @@
                 <div class="hr"></div>
                 
                 <div class="input-group">
-                    <label for="destAddr">Destination (Alfredton)</label>
-                    <input id="destAddr" value="1 Montadale Court, Alfredton VIC 3350" aria-label="Destination address" />
+                    <label for="destAddr">Destination</label>
+                    <input id="destAddr" placeholder="Enter a destination (optional)" value="" aria-label="Destination address" />
                     <div class="action-buttons">
                         <button class="btn primary" id="destGeocode" aria-label="Geocode destination address">Geocode</button>
                         <button class="btn" id="destHere" aria-label="Use GPS for destination location">Use GPS</button>
@@ -977,7 +977,7 @@
                 <h2>Monitoring Quick Check</h2>
                 <div class="small">Use this every 30-60 minutes during high risk.</div>
                 <ul class="checklist" style="margin-top: 8px;">
-                    <li>VicEmergency: check advice level for Bendigo/Epsom</li>
+                    <li>Official sources: check advice level for your location</li>
                     <li>Incidents loaded + last update time</li>
                     <li>BOM wind direction and change timing</li>
                     <li>Road closures: VicTraffic / ABC Central VIC</li>
@@ -1233,8 +1233,8 @@
             radiusKm: 200,
             routeBufferKm: 10,
             homeZoom: 10,
-            homeFallback: { lat: -36.717, lon: 144.275 },
-            destFallback: { lat: -37.548, lon: 143.798 }
+            homeFallback: { lat: -25.2744, lon: 133.7751 },
+            destFallback: { lat: -25.2744, lon: 133.7751 }
         };
 
         const $ = (id) => document.getElementById(id);
@@ -1970,8 +1970,13 @@
 
             const start = state.home.lat
                 ? [state.home.lat, state.home.lon]
-                : [DEFAULTS.homeFallback.lat, DEFAULTS.homeFallback.lon];
-            map.setView(start, DEFAULTS.homeZoom);
+                : [-25.2744, 133.7751]; // Center of Australia
+            map.setView(start, state.home.lat ? DEFAULTS.homeZoom : 4);
+            
+            // Fix map sometimes not loading fully due to container resize
+            setTimeout(() => {
+                if (map) map.invalidateSize();
+            }, 100);
         }
 
         function clearIncidentMarkers() {
@@ -2345,9 +2350,7 @@
                     updateCheckin();
                     saveCached();
                 } catch (e) {
-                    alert("Could not geocode. Using Bendigo fallback.");
-                    state.home = { ...state.home, ...DEFAULTS.homeFallback };
-                    renderCoords();
+                    alert("Could not geocode. Please try a different address.");
                     updateGoogleRouteLink();
                     updateCheckin();
                     saveCached();
@@ -2370,9 +2373,7 @@
                     updateCheckin();
                     saveCached();
                 } catch (e) {
-                    alert("Could not geocode. Using Ballarat fallback.");
-                    state.dest = { ...state.dest, ...DEFAULTS.destFallback };
-                    renderCoords();
+                    alert("Could not geocode. Please try a different destination.");
                     updateGoogleRouteLink();
                     updateCheckin();
                     saveCached();
@@ -3010,37 +3011,42 @@
                         name: 'Bendigo Exhibition Centre',
                         address: '18-26 Mulhall Street, Bendigo VIC 3550',
                         type: 'Major Centre',
+                        lat: -36.732, lon: 144.278,
                         distance: null
                     },
                     {
                         name: 'Ballarat Civic Hall',
                         address: '27 Doveton Street, Ballarat VIC 3350',
                         type: 'Major Centre',
+                        lat: -37.559, lon: 143.858,
                         distance: null
                     },
                     {
                         name: 'Castlemaine Town Hall',
                         address: 'Market Street, Castlemaine VIC 3450',
                         type: 'Community Centre',
+                        lat: -37.063, lon: 144.218,
                         distance: null
                     },
                     {
                         name: 'Kyneton Mechanics Institute',
                         address: 'Piper Street, Kyneton VIC 3444',
                         type: 'Community Centre',
+                        lat: -37.247, lon: 144.456,
                         distance: null
                     },
                     {
                         name: 'Creswick Community Centre',
                         address: 'Lydiard Street North, Creswick VIC 3363',
                         type: 'Community Centre',
+                        lat: -37.426, lon: 143.896,
                         distance: null
                     }
                 ];
 
                 // Calculate distances
                 for (const centre of centres) {
-                    const d = haversineKm(lat, lon, -37.3, 144.27); // Default to Bendigo for now; in production, geocode each centre
+                    const d = haversineKm(lat, lon, centre.lat, centre.lon);
                     centre.distance = d;
                 }
 
